@@ -120,7 +120,10 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except IOError:
             self.send_error(404, "File not found")
             return (None, 0, 0)
-        self.send_response(200)
+        if "Range" in self.headers:
+            self.send_response(206)
+        else:
+            self.send_response(200)
         self.send_header("Content-type", ctype)
         fs = os.fstat(f.fileno())
         size = int(fs[6])
@@ -257,6 +260,8 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '.py': 'text/plain',
         '.c': 'text/plain',
         '.h': 'text/plain',
+        '.mp4': 'video/mp4',
+        '.ogg': 'video/ogg',
         })
 
 
