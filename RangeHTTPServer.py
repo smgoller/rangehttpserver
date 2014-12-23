@@ -31,6 +31,7 @@ __version__ = "0.1"
 
 __all__ = ["RangeHTTPRequestHandler"]
 
+from SocketServer import ThreadingMixIn
 import os
 import posixpath
 import BaseHTTPServer
@@ -267,7 +268,9 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 def test(HandlerClass = RangeHTTPRequestHandler,
          ServerClass = BaseHTTPServer.HTTPServer):
-    BaseHTTPServer.test(HandlerClass, ServerClass)
+    class ThreadingServerClass(ThreadingMixIn, ServerClass):
+        pass
+    BaseHTTPServer.test(HandlerClass, ThreadingServerClass)
 
 
 if __name__ == '__main__':
