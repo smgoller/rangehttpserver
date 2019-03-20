@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #Portions Copyright (C) 2009,2010  Xyne
 #Portions Copyright (C) 2011 Sean Goller
+#Portions Copyright (C) 2019 Clay Sciences
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -18,33 +19,31 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
-"""Range HTTP Server.
+"""CORS Range HTTP Server.
 
 This module builds on BaseHTTPServer by implementing the standard GET
 and HEAD requests in a fairly straightforward manner, and includes support
 for the Range header.
+Then another addition adds CORS (Cross Origin Resource Sharing) header.
 
 """
 
-
 __version__ = "0.1"
 
-__all__ = ["RangeHTTPRequestHandler"]
+__all__ = ["CORSRangeRequestHandler"]
 
 import os
+import sys
 import posixpath
-import BaseHTTPServer
+from http.server import HTTPServer, SimpleHTTPRequestHandler, BaseHTTPRequestHandler
+
 import urllib
 import cgi
 import shutil
 import mimetypes
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from io import BytesIO as StringIO
 
-
-class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class RangeHTTPRequestHandler(BaseHTTPRequestHandler):
 
     """Simple HTTP request handler with GET and HEAD commands.
 
@@ -62,7 +61,7 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         """Serve a GET request."""
         f, start_range, end_range = self.send_head()
-        print "Got values of ", start_range, " and ", end_range, "...\n"
+        #print ("Got values of ", start_range, " and ", end_range, "...\n")
         if f:
             f.seek(start_range, 0)
             chunk = 0x1000
@@ -146,7 +145,7 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_header("Content-Length", end_range - start_range)
         self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
         self.end_headers()
-        print "Sending Bytes ",start_range, " to ", end_range, "...\n"
+        print ("Sending Bytes ",start_range, " to ", end_range, "...\n")
         return (f, start_range, end_range)
 
     def list_directory(self, path):
@@ -164,11 +163,11 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return None
         list.sort(key=lambda a: a.lower())
         f = StringIO()
-        displaypath = cgi.escape(urllib.unquote(self.path))
-        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
-        f.write("<html>\n<title>Directory listing for %s</title>\n" % displaypath)
-        f.write("<body>\n<h2>Directory listing for %s</h2>\n" % displaypath)
-        f.write("<hr>\n<ul>\n")
+        displaypath = cgi.escape(urllib.parse.unquote(self.path))
+        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">'.encode('utf-8'))
+        f.write(("<html>\n<title>Directory listing for %s</title>\n" % displaypath).encode('utf-8'))
+        f.write(("<body>\n<h2>Directory listing for %s</h2>\n" % displaypath).encode('utf-8'))
+        f.write("<hr>\n<ul>\n".encode('utf-8'))
         for name in list:
             fullname = os.path.join(path, name)
             displayname = linkname = name
@@ -179,9 +178,9 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if os.path.islink(fullname):
                 displayname = name + "@"
                 # Note: a link to a directory displays with @ and links with /
-            f.write('<li><a href="%s">%s</a>\n'
-                    % (urllib.quote(linkname), cgi.escape(displayname)))
-        f.write("</ul>\n<hr>\n</body>\n</html>\n")
+            f.write(('<li><a href="%s">%s</a>\n'
+                    % (urllib.parse.quote(linkname), cgi.escape(displayname))).encode('utf-8'))
+        f.write("</ul>\n<hr>\n</body>\n</html>\n".encode('utf-8'))
         length = f.tell()
         f.seek(0)
         self.send_response(200)
@@ -201,7 +200,7 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # abandon query parameters
         path = path.split('?',1)[0]
         path = path.split('#',1)[0]
-        path = posixpath.normpath(urllib.unquote(path))
+        path = posixpath.normpath(urllib.parse.unquote(path))
         words = path.split('/')
         words = filter(None, words)
         path = os.getcwd()
@@ -264,11 +263,23 @@ class RangeHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '.ogg': 'video/ogg',
         })
 
+class CORSRangeRequestHandler (RangeHTTPRequestHandler):
+    def end_headers (self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        SimpleHTTPRequestHandler.end_headers(self)
+    
 
-def test(HandlerClass = RangeHTTPRequestHandler,
-         ServerClass = BaseHTTPServer.HTTPServer):
-    BaseHTTPServer.test(HandlerClass, ServerClass)
+def test(handler_class = CORSRangeRequestHandler,
+         server_class = HTTPServer,
+         port=8000):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    httpd.serve_forever()
 
 
 if __name__ == '__main__':
-    test()
+    PORT = 8000
+    if len(sys.argv) > 1:
+        PORT = int(sys.argv[1])
+
+    test(port=PORT)
