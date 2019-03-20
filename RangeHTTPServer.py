@@ -22,9 +22,13 @@
 """CORS Range HTTP Server.
 
 This module builds on BaseHTTPServer by implementing the standard GET
-and HEAD requests in a fairly straightforward manner, and includes support
+and HEAD requests in a fairly straightforward manner, and includes partial support
 for the Range header.
 Then another addition adds CORS (Cross Origin Resource Sharing) header.
+Note that this module does not support the full specifications of range requests (https://tools.ietf.org/html/rfc7233#section-2.3). 
+* There is no support for multiple ranges and/or multipart payload
+* Only Bytes ranges
+* No if-range support
 
 """
 
