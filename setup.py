@@ -1,5 +1,5 @@
 from distutils.core import setup
-setup(name='RangeHTTPServer',
+setup(name='CORSRangeHTTPServer',
       version='0.1',
-      py_modules=['RangeHTTPServer'],
+      py_modules=['CORSRangeHTTPServer'],
       )

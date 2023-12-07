@@ -1,2 +1,8 @@
-RangeHTTPServer is a lightweight Python module that extends SimpleHTTPServer
-to support the HTTP Range command.
+CORSRangeHTTPServer is a lightweight Python3 module that extends SimpleHTTPServer
+to support some HTTP Range requests, and allows CORS on all requests.
+
+Note that this does not support the full specifications of range requests (https://tools.ietf.org/html/rfc7233#section-2.3). 
+* There is no support for multiple ranges and/or multipart payload
+* Only Bytes ranges
+* No if-range support
+
